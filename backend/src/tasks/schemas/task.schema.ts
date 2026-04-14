@@ -20,6 +20,15 @@ export class Task {
   @Prop({ required: true })
   date!: string;
 
+  @Prop({ required: true })
+  startTime!: string;
+
+  @Prop({ required: true })
+  endTime!: string;
+
+  @Prop({ required: true, min: 1 })
+  duration!: number;
+
   @Prop({ default: false })
   completed!: boolean;
 }

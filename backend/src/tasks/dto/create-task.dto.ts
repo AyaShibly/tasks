@@ -1,4 +1,11 @@
-import { IsBoolean, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  Matches,
+  MinLength,
+} from 'class-validator';
 
 export class CreateTaskDto {
   @IsString()
@@ -15,6 +22,14 @@ export class CreateTaskDto {
 
   @IsString()
   date!: string;
+
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/)
+  startTime!: string;
+
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/)
+  endTime!: string;
 
   @IsOptional()
   @IsBoolean()

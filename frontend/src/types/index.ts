@@ -16,6 +16,9 @@ export interface Task {
   category: TaskCategory
   energy: EnergyLevel
   date: string
+  startTime: string
+  endTime: string
+  duration: number
   completed: boolean
 }
 

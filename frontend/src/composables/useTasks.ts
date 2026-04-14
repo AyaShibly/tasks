@@ -17,6 +17,10 @@ const errorMessage = ref('')
 
 const auth = useAuth()
 
+type CreateTaskPayload = Omit<Task, 'id' | 'completed' | 'duration'> & {
+  duration?: number
+}
+
 watch(
   localTasks,
   (value) => {
@@ -45,7 +49,8 @@ function loadTasks(): Task[] {
   }
 
   try {
-    return JSON.parse(raw) as Task[]
+    const parsed = JSON.parse(raw) as Array<Partial<Task> & { id: string }>
+    return parsed.map(normalizeTask)
   } catch {
     return []
   }
@@ -128,7 +133,7 @@ export function useTasks() {
     }
   }
 
-  async function addTask(task: Omit<Task, 'id' | 'completed'>) {
+  async function addTask(task: CreateTaskPayload) {
     errorMessage.value = ''
     if (auth.token.value) {
       const createdTask = await apiFetch<Task>(
@@ -148,6 +153,7 @@ export function useTasks() {
       ...localTasks.value,
       {
         ...task,
+        duration: task.duration ?? calculateDuration(task.startTime, task.endTime),
         id: String(Date.now()),
         completed: false,
       },
@@ -275,4 +281,42 @@ export function useTasks() {
     toggleTask,
     deleteTask,
   }
+}
+
+function calculateDuration(startTime: string, endTime: string) {
+  const [startHour, startMinute] = parseTime(startTime)
+  const [endHour, endMinute] = parseTime(endTime)
+  return endHour * 60 + endMinute - (startHour * 60 + startMinute)
+}
+
+function normalizeTask(task: Partial<Task> & { id: string }): Task {
+  const startTime = task.startTime ?? '09:00'
+  const endTime = task.endTime ?? deriveEndTime(startTime, task.duration ?? 60)
+  const duration = task.duration ?? calculateDuration(startTime, endTime)
+
+  return {
+    id: task.id,
+    title: task.title ?? 'Untitled task',
+    category: task.category ?? 'General',
+    energy: task.energy ?? 'Medium',
+    date: task.date ?? new Date().toISOString().slice(0, 10),
+    startTime,
+    endTime,
+    duration,
+    completed: task.completed ?? false,
+  }
+}
+
+function deriveEndTime(startTime: string, duration: number) {
+  const [startHour, startMinute] = parseTime(startTime)
+  const totalMinutes = Math.min(startHour * 60 + startMinute + duration, 23 * 60 + 59)
+  const hour = Math.floor(totalMinutes / 60)
+  const minute = totalMinutes % 60
+
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+function parseTime(time: string): [number, number] {
+  const [hourString = '0', minuteString = '0'] = time.split(':')
+  return [Number(hourString), Number(minuteString)]
 }

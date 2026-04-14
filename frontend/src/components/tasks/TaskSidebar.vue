@@ -20,6 +20,8 @@ const emit = defineEmits<{
       category: TaskCategory
       energy: EnergyLevel
       date: string
+      startTime: string
+      endTime: string
     },
   ]
   addCategory: [category: string]

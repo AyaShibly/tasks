@@ -19,6 +19,14 @@ const energyClasses = {
   Medium: 'bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200',
   High: 'bg-rose-100 text-rose-700 ring-1 ring-rose-200',
 }
+
+function formatTimeRange(task: Task) {
+  if (!task.startTime || !task.endTime) {
+    return ''
+  }
+
+  return `${task.startTime} - ${task.endTime}`
+}
 </script>
 
 <template>
@@ -29,6 +37,15 @@ const energyClasses = {
           <CategoryBadge :category="task.category" />
           <span class="rounded-full px-3 py-1 text-xs font-semibold" :class="energyClasses[task.energy]">
             {{ task.energy }} Energy
+          </span>
+          <span
+            v-if="task.startTime && task.endTime"
+            class="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700"
+          >
+            {{ formatTimeRange(task) }}
+          </span>
+          <span v-if="task.duration > 0" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+            {{ task.duration }} min
           </span>
           <span class="text-xs font-medium text-slate-400">{{ formatDate(task.date) }}</span>
         </div>

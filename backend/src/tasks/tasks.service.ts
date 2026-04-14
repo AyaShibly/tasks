@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -21,8 +21,10 @@ export class TasksService {
   }
 
   async create(userId: string, dto: CreateTaskDto) {
+    const duration = this.calculateDuration(dto.startTime, dto.endTime);
     const task = await this.taskModel.create({
       ...dto,
+      duration,
       userId: new Types.ObjectId(userId),
       completed: dto.completed ?? false,
     });
@@ -31,9 +33,22 @@ export class TasksService {
   }
 
   async update(userId: string, taskId: string, dto: UpdateTaskDto) {
+    const existingTask = await this.taskModel.findOne({
+      _id: taskId,
+      userId: new Types.ObjectId(userId),
+    });
+
+    if (!existingTask) {
+      throw new NotFoundException('Task not found.');
+    }
+
+    const startTime = dto.startTime ?? existingTask.startTime;
+    const endTime = dto.endTime ?? existingTask.endTime;
+    const duration = this.calculateDuration(startTime, endTime);
+
     const task = await this.taskModel.findOneAndUpdate(
       { _id: taskId, userId: new Types.ObjectId(userId) },
-      dto,
+      { ...dto, duration },
       { new: true },
     );
 
@@ -63,6 +78,9 @@ export class TasksService {
     category: string;
     energy: 'Low' | 'Medium' | 'High';
     date: string;
+    startTime: string;
+    endTime: string;
+    duration: number;
     completed: boolean;
   }) {
     return {
@@ -71,7 +89,23 @@ export class TasksService {
       category: task.category,
       energy: task.energy,
       date: task.date,
+      startTime: task.startTime,
+      endTime: task.endTime,
+      duration: task.duration,
       completed: task.completed,
     };
+  }
+
+  private calculateDuration(startTime: string, endTime: string) {
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    const startTotal = startHour * 60 + startMinute;
+    const endTotal = endHour * 60 + endMinute;
+
+    if (endTotal <= startTotal) {
+      throw new BadRequestException('End time must be later than start time.');
+    }
+
+    return endTotal - startTotal;
   }
 }

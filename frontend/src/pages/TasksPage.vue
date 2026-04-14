@@ -57,6 +57,8 @@ async function handleAddTask(payload: {
   category: TaskCategory
   energy: EnergyLevel
   date: string
+  startTime: string
+  endTime: string
 }) {
   try {
     await addTask(payload)

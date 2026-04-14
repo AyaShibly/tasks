@@ -20,6 +20,8 @@ const emit = defineEmits<{
       category: TaskCategory
       energy: EnergyLevel
       date: string
+      startTime: string
+      endTime: string
     },
   ]
   addCategory: [category: string]
@@ -31,6 +33,8 @@ const form = reactive({
   category: 'Work' as TaskCategory,
   energy: 'Medium' as EnergyLevel,
   date: getTodayDate(),
+  startTime: '09:00',
+  endTime: '10:00',
 })
 
 const customCategory = computed({
@@ -46,7 +50,16 @@ const energyOptions = [
   { label: 'High Energy', value: 'High' },
 ] as const
 
-const isDisabled = computed(() => form.title.trim().length < 3)
+function toMinutes(time: string): number {
+  const [hourString = '0', minuteString = '0'] = time.split(':')
+  const hour = Number(hourString)
+  const minute = Number(minuteString)
+  return hour * 60 + minute
+}
+
+const calculatedDuration = computed(() => toMinutes(form.endTime) - toMinutes(form.startTime))
+const hasInvalidTimeRange = computed(() => calculatedDuration.value <= 0)
+const isDisabled = computed(() => form.title.trim().length < 3 || hasInvalidTimeRange.value)
 const canCreateCategory = computed(() => {
   const normalized = customCategory.value.trim()
 
@@ -74,12 +87,16 @@ function handleSubmit() {
     category: form.category,
     energy: form.energy,
     date: form.date,
+    startTime: form.startTime,
+    endTime: form.endTime,
   })
 
   form.title = ''
   form.category = 'Work'
   form.energy = 'Medium'
   form.date = getTodayDate()
+  form.startTime = '09:00'
+  form.endTime = '10:00'
 }
 
 function handleAddCategory() {
@@ -173,6 +190,24 @@ defineExpose({
       </div>
       <BaseSelect v-model="form.energy" label="Energy Level" :options="[...energyOptions]" />
       <BaseInput v-model="form.date" label="Planned Day" type="date" />
+      <div class="grid gap-4 sm:grid-cols-2">
+        <BaseInput
+          v-model="form.startTime"
+          label="Start Time"
+          type="time"
+        />
+        <BaseInput
+          v-model="form.endTime"
+          label="End Time"
+          type="time"
+        />
+      </div>
+      <p v-if="hasInvalidTimeRange" class="text-xs text-rose-600">
+        End time must be later than start time.
+      </p>
+      <p v-else class="text-xs text-slate-500">
+        Duration will be calculated automatically: {{ calculatedDuration }} minutes.
+      </p>
 
       <BaseButton type="submit" block :disabled="isDisabled || loading">
         {{ loading ? 'Saving...' : 'Add Task' }}
